@@ -144,6 +144,7 @@ public class EventBus {
      * ThreadMode} and priority.
      */
     public void register(Object subscriber) {
+        // TODO: 2022/1/19 这里的判断的作用？
         if (AndroidDependenciesDetector.isAndroidSDKAvailable() && !AndroidDependenciesDetector.areAndroidComponentsAvailable()) {
             // Crash if the user (developer) has not imported the Android compatibility library.
             throw new RuntimeException("It looks like you are using EventBus on Android, " +

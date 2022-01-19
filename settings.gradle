@@ -1,3 +1,4 @@
 rootProject.name = "SourceCodeReadNote"
 include ':app'
 include ':EventBus'
+include ':eventbus-android'

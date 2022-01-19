@@ -8,6 +8,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.junit.Assert.*;
 
 /**
@@ -22,5 +25,14 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         assertEquals("com.coder.zt.sourcecodereadnote", appContext.getPackageName());
+    }
+
+    @Test
+    public void testMpaPutReturn(){
+        Map<String, String> map = new HashMap<>();
+        String resultFirst = map.put("test", "first");
+        System.out.println("resultFirst ==> " + resultFirst);
+        String resultSecond = map.put("test", "second");
+        System.out.println("resultFirst ==> " + resultSecond);
     }
 }

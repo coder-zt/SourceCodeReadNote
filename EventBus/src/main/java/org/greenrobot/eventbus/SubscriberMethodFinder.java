@@ -53,11 +53,14 @@ class SubscriberMethodFinder {
     }
 
     List<SubscriberMethod> findSubscriberMethods(Class<?> subscriberClass) {
+        //查询缓存是否已经查找过这个类的订阅方法
         List<SubscriberMethod> subscriberMethods = METHOD_CACHE.get(subscriberClass);
+//        List<SubscriberMethod> subscriberMethods = null;
         if (subscriberMethods != null) {
             return subscriberMethods;
         }
-
+        //默认为false
+        // TODO: 2022/1/19 这两种查找订阅方法的方式有什么不同？
         if (ignoreGeneratedIndex) {
             subscriberMethods = findUsingReflection(subscriberClass);
         } else {
@@ -73,7 +76,9 @@ class SubscriberMethodFinder {
     }
 
     private List<SubscriberMethod> findUsingInfo(Class<?> subscriberClass) {
+        //获取FindState
         FindState findState = prepareFindState();
+        //初始化FindState
         findState.initForSubscriber(subscriberClass);
         while (findState.clazz != null) {
             findState.subscriberInfo = getSubscriberInfo(findState);
@@ -106,6 +111,10 @@ class SubscriberMethodFinder {
         return subscriberMethods;
     }
 
+    /**
+     * 获取FindState
+     * @return
+     */
     private FindState prepareFindState() {
         synchronized (FIND_STATE_POOL) {
             for (int i = 0; i < POOL_SIZE; i++) {
@@ -119,7 +128,14 @@ class SubscriberMethodFinder {
         return new FindState();
     }
 
+    /**
+     * 通过FindState获取订阅者的信息
+     *
+     * @param findState
+     * @return
+     */
     private SubscriberInfo getSubscriberInfo(FindState findState) {
+        //
         if (findState.subscriberInfo != null && findState.subscriberInfo.getSuperSubscriberInfo() != null) {
             SubscriberInfo superclassInfo = findState.subscriberInfo.getSuperSubscriberInfo();
             if (findState.clazz == superclassInfo.getSubscriberClass()) {
@@ -147,10 +163,15 @@ class SubscriberMethodFinder {
         return getMethodsAndRelease(findState);
     }
 
+    /**
+     * 通过反射获取订阅者的注册方法
+     * @param findState
+     */
     private void findUsingReflectionInSingleClass(FindState findState) {
         Method[] methods;
         try {
             // This is faster than getMethods, especially when subscribers are fat classes like Activities
+            // 当遇到类很多的方法是使用getDeclaredMethods()会更快
             methods = findState.clazz.getDeclaredMethods();
         } catch (Throwable th) {
             // Workaround for java.lang.NoClassDefFoundError, see https://github.com/greenrobot/EventBus/issues/149
@@ -169,18 +190,24 @@ class SubscriberMethodFinder {
         }
         for (Method method : methods) {
             int modifiers = method.getModifiers();
+            // TODO: 2022/1/19 这句话判断了方法的什么信息？
+            // 判断方法是不是公开的，且不是静态、抽象...
             if ((modifiers & Modifier.PUBLIC) != 0 && (modifiers & MODIFIERS_IGNORE) == 0) {
                 Class<?>[] parameterTypes = method.getParameterTypes();
+                //方法的参数只能为1个
                 if (parameterTypes.length == 1) {
                     Subscribe subscribeAnnotation = method.getAnnotation(Subscribe.class);
                     if (subscribeAnnotation != null) {
                         Class<?> eventType = parameterTypes[0];
                         if (findState.checkAdd(method, eventType)) {
+                            //获取线程模式
                             ThreadMode threadMode = subscribeAnnotation.threadMode();
+                            //添加该方法
                             findState.subscriberMethods.add(new SubscriberMethod(method, eventType, threadMode,
                                     subscribeAnnotation.priority(), subscribeAnnotation.sticky()));
                         }
                     }
+                    //isAnnotationPresent：方法是否有指定的注释
                 } else if (strictMethodVerification && method.isAnnotationPresent(Subscribe.class)) {
                     String methodName = method.getDeclaringClass().getName() + "." + method.getName();
                     throw new EventBusException("@Subscribe method " + methodName +
@@ -209,6 +236,11 @@ class SubscriberMethodFinder {
         boolean skipSuperClasses;
         SubscriberInfo subscriberInfo;
 
+        /**
+         * 初始化
+         *
+         * @param subscriberClass
+         */
         void initForSubscriber(Class<?> subscriberClass) {
             this.subscriberClass = clazz = subscriberClass;
             skipSuperClasses = false;
@@ -253,6 +285,7 @@ class SubscriberMethodFinder {
             String methodKey = methodKeyBuilder.toString();
             Class<?> methodClass = method.getDeclaringClass();
             Class<?> methodClassOld = subscriberClassByMethodKey.put(methodKey, methodClass);
+            // 如何这个方法key没有对应的子类订阅者或者是子类的父类
             if (methodClassOld == null || methodClassOld.isAssignableFrom(methodClass)) {
                 // Only add if not already found in a sub class
                 return true;
@@ -271,6 +304,7 @@ class SubscriberMethodFinder {
                 String clazzName = clazz.getName();
                 // Skip system classes, this degrades performance.
                 // Also we might avoid some ClassNotFoundException (see FAQ for background).
+                // 在父类是官方类是结束查找
                 if (clazzName.startsWith("java.") || clazzName.startsWith("javax.") ||
                         clazzName.startsWith("android.") || clazzName.startsWith("androidx.")) {
                     clazz = null;
