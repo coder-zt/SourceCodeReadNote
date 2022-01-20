@@ -258,6 +258,12 @@ class SubscriberMethodFinder {
             subscriberInfo = null;
         }
 
+        /**
+         *
+         * @param method 订阅者的方法名
+         * @param eventType 订阅者方法名的参数类型
+         * @return
+         */
         boolean checkAdd(Method method, Class<?> eventType) {
             // 2 level check: 1st level with event type only (fast), 2nd level with complete signature when required.
             // Usually a subscriber doesn't have methods listening to the same event type.
