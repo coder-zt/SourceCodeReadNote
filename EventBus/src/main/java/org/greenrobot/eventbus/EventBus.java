@@ -48,8 +48,11 @@ public class EventBus {
     private static final EventBusBuilder DEFAULT_BUILDER = new EventBusBuilder();
     private static final Map<Class<?>, List<Class<?>>> eventTypesCache = new HashMap<>();
 
+    //以订阅者注册的方法事件的参数类型为key存放订阅者相关信息的map
     private final Map<Class<?>, CopyOnWriteArrayList<Subscription>> subscriptionsByEventType;
+    //以订阅者为key存放订阅者的各个方法事件参数的集合
     private final Map<Object, List<Class<?>>> typesBySubscriber;
+    //?
     private final Map<Class<?>, Object> stickyEvents;
 
     private final ThreadLocal<PostingThreadState> currentPostingThreadState = new ThreadLocal<PostingThreadState>() {
@@ -61,7 +64,7 @@ public class EventBus {
 
     // @Nullable
     private final MainThreadSupport mainThreadSupport;
-    // @Nullable
+    // @Nullable//HandlerPoster
     private final Poster mainThreadPoster;
     private final BackgroundPoster backgroundPoster;
     private final AsyncPoster asyncPoster;
@@ -76,6 +79,7 @@ public class EventBus {
     private final boolean eventInheritance;
 
     private final int indexCount;
+    //日志打印器
     private final Logger logger;
 
     /** Convenience singleton for apps using a process-wide EventBus instance. */
@@ -111,22 +115,33 @@ public class EventBus {
     }
 
     EventBus(EventBusBuilder builder) {
+        //获取builder日志对象，如果没有androidSDK使用Java的java.io.PrintStream,反之使用android.util.Log
         logger = builder.getLogger();
+        //初始化以订阅者注册的方法事件的参数类型为key存放订阅者相关信息的map
         subscriptionsByEventType = new HashMap<>();
+        //初始化以订阅者为key存放订阅者的各个方法事件参数的集合
         typesBySubscriber = new HashMap<>();
+        //?
         stickyEvents = new ConcurrentHashMap<>();
+        //如果是android使用该库，提供基于android实现主线程的poster
         mainThreadSupport = builder.getMainThreadSupport();
+        //初始化各个线程模式下的Poster
+        //如何是android使用该库,创建基于android实现主线程的poster,就是HandlerPost
         mainThreadPoster = mainThreadSupport != null ? mainThreadSupport.createPoster(this) : null;
         backgroundPoster = new BackgroundPoster(this);
         asyncPoster = new AsyncPoster(this);
+        //获取通过apt生成的订阅者个数
         indexCount = builder.subscriberInfoIndexes != null ? builder.subscriberInfoIndexes.size() : 0;
+        //初始化订阅者方法查找器
         subscriberMethodFinder = new SubscriberMethodFinder(builder.subscriberInfoIndexes,
                 builder.strictMethodVerification, builder.ignoreGeneratedIndex);
+        //初始化各个异常的日志打印开关
         logSubscriberExceptions = builder.logSubscriberExceptions;
         logNoSubscriberMessages = builder.logNoSubscriberMessages;
         sendSubscriberExceptionEvent = builder.sendSubscriberExceptionEvent;
         sendNoSubscriberEvent = builder.sendNoSubscriberEvent;
         throwSubscriberException = builder.throwSubscriberException;
+        // TODO: 2022/1/24 初始化代码阅读
         eventInheritance = builder.eventInheritance;
         executorService = builder.executorService;
     }
